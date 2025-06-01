@@ -1,12 +1,12 @@
 {
     "name": "com.tglGames.tgl-fsm",
-    "version": "0.1.0",
+    "version": "1.0.1",
     "displayName": "TGL FSM",
     "description": "This is an FSM package, with and without MonoBehaviour child classes for ease of use",
     "author": {
         "name" : "Rishabh Jain",
         "email" : "it.rishabh.jain@gmail.com",
-        "url" : "https://github.com/theGameLearner"
+        "url" : "https://tglblog.vercel.app/"
      },
     "unity": "2019.1",
     "unityRelease": "0b5",
