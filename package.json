@@ -1,6 +1,6 @@
 {
-    "name": "com.tglGames.tgl-fsm",
-    "version": "1.0.1",
+    "name": "com.tglgames.tgl-fsm",
+    "version": "1.0.11",
     "displayName": "TGL FSM",
     "description": "This is an FSM package, with and without MonoBehaviour child classes for ease of use",
     "author": {
