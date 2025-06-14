@@ -15,7 +15,8 @@ namespace TGL.FSM.MonoBehaviourFSM
         #region MyVariables
         [SerializeField] protected TStateEnumType myStateType; // as the state is a MonoBehaviour, we can auto set the myStateType in inspector
         private StateMachine<TStateEnumType> myStateMachine;
-        private GenericMonoBehaviourFSMObject<TStateEnumType, GenericMonoBehaviorFSMState<TStateEnumType>> myStateObject;
+        // private GenericMonoBehaviourFSMObject<TStateEnumType, GenericMonoBehaviorFSMState<TStateEnumType>> myStateObject;
+        private IStateObject<TStateEnumType> myStateObject;
         private bool isInitialized;
         #endregion MyVariables
 
@@ -23,7 +24,8 @@ namespace TGL.FSM.MonoBehaviourFSM
         // public getters
         public TStateEnumType GetStateType => myStateType;
         public StateMachine<TStateEnumType> GetStateMachine => myStateMachine;
-        public IStateObject<TStateEnumType> GetStateObject => (IStateObject<TStateEnumType>)myStateObject;
+        // public IStateObject<TStateEnumType> GetStateObject => (IStateObject<TStateEnumType>)myStateObject;
+        public IStateObject<TStateEnumType> GetStateObject => myStateObject;
         public bool IsInitialized => isInitialized;
         #endregion Interface Properties
         
