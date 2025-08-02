@@ -10,7 +10,7 @@ on:
 
 jobs:
   call_reusable_deploy:
-    uses: ./.github/workflows/reusable-deploy.yml@main
+    uses: ./.github/workflows/reusable-deploy.yml
     with:
       source_branch: 'dev'
       dirs_to_rename: 'Sample, Documentation, Assets'
