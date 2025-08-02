@@ -13,6 +13,6 @@ jobs:
     uses: ./.github/workflows/reusable-deploy.yml
     with:
       source_branch: 'dev'
-      dirs_to_rename: 'Sample, Documentation, Assets'
+      dirs_to_rename: 'Samples, Documentation'
       commit_message: ${{ github.event.inputs.commit_message }}
     secrets: inherit
