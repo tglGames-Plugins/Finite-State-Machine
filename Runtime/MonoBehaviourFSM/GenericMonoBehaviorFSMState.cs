@@ -90,7 +90,7 @@ namespace TGL.FSM.MonoBehaviourFSM
 
         public bool Equals(IState<TStateEnumType> other)
         {
-            return GetStateType.Equals(other.GetStateType);
+            return other != null && GetStateType.Equals(other.GetStateType);
         }
         
         public virtual async Task ChangeStateTo(TStateEnumType screenType)
