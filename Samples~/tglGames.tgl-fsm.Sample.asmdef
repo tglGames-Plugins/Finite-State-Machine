@@ -1,9 +1,9 @@
 {
-    "name": "NewAssembly",
+    "name": "tgl-fsm.Sample",
     "rootNamespace": "",
     "references": [
-        "tglGames.tgl-fsm",
-        "Unity.TextMeshPro"
+        "Unity.TextMeshPro",
+        "tgl-fsm.Runtime"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
