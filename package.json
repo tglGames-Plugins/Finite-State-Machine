@@ -1,22 +1,24 @@
 {
-    "name": "com.tglgames.tgl-fsm",
-    "version": "1.0.2",
-    "displayName": "TGL FSM",
-    "description": "This is an FSM package, with and without MonoBehaviour child classes for ease of use",
-    "author": {
-        "name" : "Rishabh Jain",
-        "email" : "thegamelearner@gmail.com",
-        "url" : "https://tglblog.vercel.app/"
-     },
-    "unity": "2019.1",
-    "unityRelease": "0b5",
-    "documentationUrl": "",
-    "changelogUrl": "",
-    "licensesUrl": "https://opensource.org/license/apache-2-0",
-    "dependencies": { },
-   "keywords": [
-      "FSM",
-      "Finite state machine",
-      "state machine"
-    ]
-  }
+  "name": "com.tglgames.tgl-fsm",
+  "version": "1.0.3",
+  "displayName": "TGL FSM",
+  "description": "This is an FSM package, with and without MonoBehaviour child classes for ease of use",
+  "author": {
+    "name" : "Rishabh Jain",
+    "email" : "thegamelearner@gmail.com",
+    "url" : "https://tglblog.vercel.app/"
+  },
+  "publishConfig": { "registry": "https://npm.pkg.github.com/@tglGames-Plugins" },
+  "unity": "2019.1",
+  "unityRelease": "0b5",
+  "documentationUrl": "",
+  "changelogUrl": "",
+  "licensesUrl": "https://opensource.org/license/apache-2-0",
+  "dependencies": { },
+  "keywords": [
+    "FSM",
+    "Finite state machine",
+    "state machine"
+  ]
+}
+
