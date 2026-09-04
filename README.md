@@ -23,9 +23,4 @@ To use this plugin, follow these steps:
 Samples can be found in "Samples" folder. There is also a scene with the necessary information.
 
 ## How to add this package?
-- Open unity package manaegr
-- On top right, there is a button to add a package
-- add a git package (from git URL)
-- fill the Https link for the package, in this case, 'https://github.com/tglGames-Plugins/Finite-State-Machine.git'
-- Add
-The package will be added under 'TGL FSM' in packages, use as needed.
+See [How to add this package](HowToAddPackage.md) for detailed instructions.
