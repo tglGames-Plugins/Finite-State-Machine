@@ -4,6 +4,7 @@ using UnityEngine;
 
 namespace TGL.FSM.Threads
 {
+    [Obsolete("Try and use Awaitable instead of this, Unity made it for threads")]
     public class UnityMainThreadDispatcher : MonoBehaviour
     {
         private static UnityMainThreadDispatcher _instance;

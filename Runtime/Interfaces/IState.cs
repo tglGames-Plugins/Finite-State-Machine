@@ -1,5 +1,6 @@
 using System;
 using System.Threading.Tasks;
+using UnityEngine;
 
 namespace TGL.FSM
 {
@@ -19,15 +20,15 @@ namespace TGL.FSM
         /// This state will be set as the <see cref="StateMachine{StateEnumType}.CurrentState"/> after <see cref="PreEnter"/> is called.<br/>
         /// We use this method to set up data before we activate this state 
         /// </summary>
-        public void PreEnter();
+        public Awaitable PreEnter();
         
         /// <summary>
         /// During <see cref="Enter"/>, the <see cref="StateMachine{StateEnumType}.CurrentState"/> is same as this state, <br/>
         /// before <see cref="Enter"/> was called, we already called prev state's <see cref="PostExit"/><br/>
         /// We use this method to do all changes that need a time component. We can wait for it and verify it was successfully activated
         /// </summary>
-        /// <returns>Task with no data</returns>
-        public Task Enter();
+        /// <returns>Awaitable Task with no data</returns>
+        public Awaitable Enter();
         
         #endregion EnterCycle
         
@@ -48,14 +49,14 @@ namespace TGL.FSM
         /// We are using it to change data so we can safely leave the state
         /// </summary>
         /// <returns>yield statements while this method runs</returns>
-        public Task Exit();
+        public Awaitable Exit();
         
         /// <summary>
         /// During <see cref="PostExit"/>, the <see cref="StateMachine{StateEnumType}.CurrentState"/> is not same as this state.<br/>
         /// This state is set as the <see cref="StateMachine{StateEnumType}.PrevState"/> before <see cref="PostExit"/> was called. <br/>
         /// We have exited the state, so any data changes needed to be done, can be done now
         /// </summary>
-        public void PostExit();
+        public Awaitable PostExit();
         #endregion ExitCycle
         
         public new bool Equals(IState<TStateType> other)
@@ -63,6 +64,6 @@ namespace TGL.FSM
             return this.GetStateType.Equals(other.GetStateType);
         }
 
-        Task ChangeStateTo(TStateType screenType);
+        Awaitable ChangeStateTo(TStateType screenType);
     }
 }

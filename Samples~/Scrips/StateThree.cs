@@ -1,6 +1,8 @@
+using System;
 using TGL.FSM.MonoBehaviourFSM;
 using UnityEngine;
 using UnityEngine.UI;
+using Random = UnityEngine.Random;
 
 namespace TGL.FSM.Sample
 {
@@ -9,13 +11,20 @@ namespace TGL.FSM.Sample
         Color color = Color.cyan;
         Image myImage;
 
-        public override void PreEnter()
+        public override async Awaitable PreEnter()
         {
-            if (myImage == null)
+            try
             {
-                myImage = GetComponent<Image>();
+                if (myImage == null)
+                {
+                    myImage = GetComponent<Image>();
+                }
+                await base.PreEnter();
             }
-            base.PreEnter();
+            catch (Exception exception)
+            {
+                Debug.LogException(exception);
+            }
         }
 
         public override void Hide()
@@ -41,6 +50,16 @@ namespace TGL.FSM.Sample
             {
                 myImage.color = Random.ColorHSV(0.5f, 1, 0.5f, 1, 0.5f, 1, 0.5f, 1);
             }
+        }
+
+        public override StateEnum GetNextStateEnum()
+        {
+            return StateEnum.STATE_4;
+        }
+
+        public override StateEnum GetPrevStateEnum()
+        {
+            return StateEnum.STATE_2;
         }
     }
 }

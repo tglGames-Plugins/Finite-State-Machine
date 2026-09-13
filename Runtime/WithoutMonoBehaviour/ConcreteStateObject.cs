@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using TGL.FSM.Exceptions;
 using TGL.FSM.MonoBehaviourFSM;
 using TGL.FSM.Threads;
 using UnityEngine;
@@ -17,6 +18,10 @@ namespace TGL.FSM
         private TBaseState initializationState;
         private List<TBaseState> allPossibleStates;
         private bool isInitialized;
+        
+        
+        private FSMResult _initTaskResult = null;
+        private AwaitableCompletionSource<FSMResult> _initAwaitableCompletionSource;
         #endregion
         
         #region Interface Properties
@@ -27,15 +32,19 @@ namespace TGL.FSM
         IState<TStateType> IStateObject<TStateType>.InitializationState => initializationState;
         List<IState<TStateType>> IStateObject<TStateType>.AllPossibleStates => allPossibleStates.Cast<IState<TStateType>>().ToList();
         
+        FSMResult IStateObject<TStateType>.InitTaskResult => _initTaskResult;
         #endregion
 
         #region StateObjectMethods
         
-        private async Task Setup(TBaseState initState, 
-            List<TBaseState> allStates, 
-            Action<bool> initializedSuccessfully = null) 
+        private async Awaitable<FSMResult> Setup(TBaseState initState, List<TBaseState> allStates, Action<bool> initializedSuccessfully = null) 
         {
+            _initAwaitableCompletionSource = new AwaitableCompletionSource<FSMResult>();
+            _initTaskResult = null;
+
             isInitialized = false;
+            FSMResult result = null;
+            string errorMsg = null;
             try
             {
                 initializationState = initState;
@@ -44,44 +53,72 @@ namespace TGL.FSM
                 
                 if (allPossibleStates is not { Count: not 0 })
                 {
-                    Debug.LogError($"The passed states list is null or empty. for type {typeof(TStateType)}");
+                    errorMsg = $"The passed states list is null or empty. for type {typeof(TStateType)}";
+                    Debug.LogError(errorMsg);
+                    result = new FSMResult(false, false, new FsmException(errorMsg));
+                }
+                else if (allPossibleStates.Any(x => x == null))
+                {
+                    errorMsg = $"There are null items in {nameof(allPossibleStates)}, cannot Initialize";
+                    Debug.LogError(errorMsg);
+                    result = new FSMResult(false, false, new FsmException(errorMsg));
                 }
                 else
                 {
-                    if (allPossibleStates.Any(x => x == null))
+                    allPossibleStates.ForEach(x => x.Initialize(myStateMachine, this));
+                    
+                    errorMsg = $"Unable to Initialize stateMachine for type {typeof(TStateType)}";
+                    await myStateMachine.Initialize(initializationState, (initSuccess) =>
                     {
-                        Debug.LogError($"There are null in {nameof(allPossibleStates)}, cannot Initialize");
+                        isInitialized = initSuccess;
+                    });
+                    
+                    if (isInitialized)
+                    {
+                        Debug.Log($"successfully initialized stateMachine for type {typeof(TStateType)}");
+                        _initTaskResult = FSMResult.GetSuccess();
                     }
                     else
                     {
-                        allPossibleStates.ForEach(x => x.Initialize(myStateMachine, this));
-                        await myStateMachine.Initialize(initializationState, (initSuccess) =>
-                        {
-                            Debug.Log(initSuccess ? $"successfully initialized stateMachine for type {typeof(TStateType)}" : $"Unable to Initialize stateMachine for type {typeof(TStateType)}");
-                            isInitialized = initSuccess;
-                        });
+                        _initTaskResult = new FSMResult(false, false, new FsmException(errorMsg));
                     }
+                    
                 }
             }
             catch (Exception ex)
             {
                 Debug.LogException(ex);
-                throw;
+                result = new FSMResult(false, false, new FsmException($"Unable to Initialize stateMachine for type {typeof(TStateType)}", ex));
             }
             finally
             {
+                result ??= new FSMResult(false, false, new FsmException("Unknown error during setup."));
+                
+                // Set completion sources and flags here
+                _initAwaitableCompletionSource.SetResult(result);
+                _initTaskResult = result;
                 initializedSuccessfully?.Invoke(isInitialized);
             }
+            
+            return result;
         }
         #endregion StateObjectMethods
 
         #region InterfaceOverrides
 
-        public virtual async Task Initialize(IState<TStateType> initState, 
-            List<IState<TStateType>> allStates,
-            Action<bool> initializedSuccessfully = null)
+        public virtual async Awaitable Initialize(IState<TStateType> initState, List<IState<TStateType>> allStates, Action<bool> initializedSuccessfully = null)
         {
-            await Setup((TBaseState)initState, allStates.Cast<TBaseState>().ToList(), initializedSuccessfully);
+            if (_initTaskResult is null)
+            {
+                try
+                {
+                    await Setup((TBaseState)initState, allStates.Cast<TBaseState>().ToList(), initializedSuccessfully);
+                }
+                catch (Exception e)
+                {
+                    Debug.LogException(e);
+                }
+            }
         }
         
         public virtual void LogicUpdate(float deltaTime)
@@ -95,8 +132,13 @@ namespace TGL.FSM
             myStateMachine.LogicUpdate(deltaTime);
         }
         
-        public virtual async Task ChangeState(TStateType targetStateType, Action<bool> onStateChangeSuccess = null)
+        public virtual async Awaitable ChangeState(TStateType targetStateType, Action<bool> onStateChangeSuccess = null)
         {
+            if (myStateMachine.IsStateChanging)
+            {
+                Debug.LogError($"already changing states, cannot change state to {targetStateType}");
+                return;
+            }
             bool stateChanged = false;
             
             if (!isInitialized)

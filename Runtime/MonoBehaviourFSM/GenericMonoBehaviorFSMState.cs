@@ -40,22 +40,34 @@ namespace TGL.FSM.MonoBehaviourFSM
 
         #region EnterCycle
         
-        public virtual void PreEnter()
+        public virtual async Awaitable PreEnter()
         {
-            // Dispatch to main thread
-            UnityMainThreadDispatcher.Instance.Enqueue(EnableGameObject);
+            try
+            {
+                EnableGameObject();
+                await Awaitable.MainThreadAsync();
+            }
+            catch (Exception exception)
+            {
+                Debug.LogException(exception);
+            }
         }
 
-        public Task Enter()
+        public async Awaitable Enter()
         {
-            if (GetStateMachine.CurrentState != null && !GetStateMachine.CurrentState.GetStateType.Equals(GetStateType))
+            try
             {
-                Debug.LogError($"current state {GetStateMachine.CurrentState.GetType().Name} is still not updated to {this.GetType().Name} state in {nameof(PreEnter)} call");
-                return Task.FromException(new FsmException($"state machine's Current state is {GetStateMachine.CurrentState} still not updated to {GetStateType}, StateMachine should not have called {nameof(PreEnter)}"));
+                if (GetStateMachine.CurrentState != null && !GetStateMachine.CurrentState.GetStateType.Equals(GetStateType))
+                {
+                    Debug.LogError($"current state {GetStateMachine.CurrentState.GetType().Name} is still not updated to {this.GetType().Name} state in {nameof(PreEnter)} call");
+                    await Awaitable.MainThreadAsync();
+                }
+                PostEnter();
             }
-            
-            PostEnter();
-            return Task.CompletedTask;
+            catch (Exception exception)
+            {
+                Debug.LogException(exception);
+            }
         }
         
         #endregion EnterCycle
@@ -67,23 +79,34 @@ namespace TGL.FSM.MonoBehaviourFSM
 
         #region ExitCycle
         
-        public Task Exit()
+        public async Awaitable Exit()
         {
-            PreExit();
-            if (!myStateMachine.CurrentStateType.Equals(this.GetStateType))
+            try
             {
-                Debug.LogError($"current state {myStateMachine.CurrentState.GetType().Name} is already different than {this.GetType().Name} state in {nameof(PreEnter)} call");
-                return Task.FromException(new FsmException($"State Machine's current state is {myStateMachine.CurrentStateType}. It should have been {GetStateType} when we are in {this.GetType()}.{nameof(Exit)}"));
+                PreExit();
+                if (!myStateMachine.CurrentStateType.Equals(this.GetStateType))
+                {
+                    Debug.LogError($"current state {myStateMachine.CurrentState.GetType().Name} is already different than {this.GetType().Name} state in {nameof(PreEnter)} call");
+                    await Awaitable.MainThreadAsync();
+                }
             }
-            
-            // confirmation that our current state is same as this state while exiting.
-            return Task.CompletedTask;
+            catch (Exception exception)
+            {
+                Debug.LogException(exception);
+            }
         }
         
-        public virtual void PostExit()
+        public virtual async Awaitable PostExit()
         {
-            // will run on main thread
-            UnityMainThreadDispatcher.Instance.Enqueue(DisableGameObject);
+            try
+            {
+                DisableGameObject();
+                await Awaitable.MainThreadAsync();
+            }
+            catch (Exception exception)
+            {
+                Debug.LogException(exception);
+            }
         }
         
         #endregion ExitCycle
@@ -93,19 +116,26 @@ namespace TGL.FSM.MonoBehaviourFSM
             return other != null && GetStateType.Equals(other.GetStateType);
         }
         
-        public virtual async Task ChangeStateTo(TStateEnumType screenType)
+        public virtual async Awaitable ChangeStateTo(TStateEnumType screenType)
         {
-            await GetStateObject.ChangeState(screenType, (screenChanged) =>
+            try
             {
-                if (screenChanged)
+                await GetStateObject.ChangeState(screenType, (screenChanged) =>
                 {
-                    Debug.Log($"State changed : {GetStateMachine.PrevStateType} -> {GetStateMachine.CurrentStateType} successfully", gameObject);
-                }
-                else
-                {
-                    Debug.LogError($"Failed to change to {screenType} page");
-                }
-            });
+                    if (screenChanged)
+                    {
+                        Debug.Log($"State changed : {GetStateMachine.PrevStateType} -> {GetStateMachine.CurrentStateType} successfully", gameObject);
+                    }
+                    else
+                    {
+                        Debug.LogError($"Failed to change to {screenType} page");
+                    }
+                });
+            }
+            catch (Exception exception)
+            {
+                Debug.LogException(exception);
+            }
         }
         #endregion Interface Methods
         
@@ -116,7 +146,7 @@ namespace TGL.FSM.MonoBehaviourFSM
             if (gameObject.activeInHierarchy)
             {
                 // Do we need to do anything before we activate this state?
-                // How is this state's gameObject already active?
+                Debug.LogWarning($"{gameObject.name} is already active", gameObject);
             }
             else
             {

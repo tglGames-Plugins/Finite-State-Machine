@@ -13,7 +13,7 @@ namespace TGL.FSM
         public TStateType PrevStateType =>  PrevState == null ? default : PrevState.GetStateType;
         public bool IsStateChanging { get; private set; }
 
-        public async Task Initialize(IState<TStateType> initState, Action<bool> onStateMachineInitialized = null)
+        public async Awaitable Initialize(IState<TStateType> initState, Action<bool> onStateMachineInitialized = null)
         {
             bool initSuccess = false;
             try
@@ -25,7 +25,7 @@ namespace TGL.FSM
                 else
                 {
                     IsStateChanging = true;
-                    initState.PreEnter();
+                    await initState.PreEnter();
                     PrevState = CurrentState;
                     CurrentState = initState;
                     await CurrentState.Enter();
@@ -35,7 +35,6 @@ namespace TGL.FSM
             catch (Exception ex)
             {
                 Debug.LogException(ex); // Shows full stack trace in Console
-                throw; // Re-throw if caller needs to handle it
             }
             finally
             {
@@ -44,7 +43,7 @@ namespace TGL.FSM
             }
         }
         
-        public async Task ChangeState(IState<TStateType> newState, Action<bool> onStateChangeSuccess = null)
+        public async Awaitable ChangeState(IState<TStateType> newState, Action<bool> onStateChangeSuccess = null)
         {
             bool stateChanged = false;
             try
@@ -57,17 +56,16 @@ namespace TGL.FSM
                 
                 IsStateChanging = true;
                 await CurrentState.Exit();
-                newState.PreEnter();
+                await newState.PreEnter();
                 PrevState = CurrentState;
                 CurrentState = newState;
-                PrevState.PostExit();
+                await PrevState.PostExit();
                 await CurrentState.Enter();
                 stateChanged = true;
             }
             catch (Exception ex)
             {
                 Debug.LogException(ex); // Shows full stack trace in Console
-                throw; // Re-throw if caller needs to handle it
             }
             finally
             {

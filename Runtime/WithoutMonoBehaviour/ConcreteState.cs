@@ -1,5 +1,6 @@
 using System;
 using System.Threading.Tasks;
+using UnityEngine;
 
 namespace TGL.FSM
 {
@@ -41,14 +42,33 @@ namespace TGL.FSM
         }
         
         #region EnterCycle
+
         /// <summary>
         /// before entering the state
         /// </summary>
-        public void PreEnter() { }
-
-        public Task Enter()
+        public async Awaitable PreEnter()
         {
-            return Task.CompletedTask;
+            try
+            {
+                await Awaitable.MainThreadAsync();
+            }
+            catch (Exception exception)
+            {
+                Debug.LogException(exception);
+            }
+        }
+
+        public async Awaitable Enter()
+        {
+            try
+            {
+                Debug.Log($"Entering state : {this.GetType().Name}");
+                await Awaitable.MainThreadAsync();
+            }
+            catch (Exception e)
+            {
+                Debug.LogException(e);
+            }
         }
         #endregion EnterCycle
 
@@ -59,15 +79,33 @@ namespace TGL.FSM
         public void LogicUpdate(float deltaTime) { }
 
         #region ExitCycle
-        public Task Exit()
+        public async Awaitable Exit()
         {
-            return Task.CompletedTask;
+            try
+            {
+                await Awaitable.MainThreadAsync();
+                Debug.Log($"Exit state : {this.GetType().Name}");
+            }
+            catch (Exception e)
+            {
+                Debug.LogException(e);
+            }
         }
 
         /// <summary>
         /// After exiting the state
         /// </summary>
-        public void PostExit() { }
+        public async Awaitable PostExit()
+        {
+            try
+            {
+                await Awaitable.MainThreadAsync();
+            }
+            catch (Exception e)
+            {
+                Debug.LogException(e);
+            }
+        }
         #endregion ExitCycle
 
         public bool Equals(IState<TStateEnumType> other)
@@ -75,19 +113,26 @@ namespace TGL.FSM
             return this.GetStateType.Equals(other.GetStateType);
         }
         
-        public virtual async Task ChangeStateTo(TStateEnumType screenType)
+        public virtual async Awaitable ChangeStateTo(TStateEnumType screenType)
         {
-            await GetStateObject.ChangeState(screenType, (screenChanged) =>
+            try
             {
-                if (screenChanged)
+                await GetStateObject.ChangeState(screenType, (screenChanged) =>
                 {
-                    Console.WriteLine($"State changed : {GetStateMachine.PrevStateType} -> {GetStateMachine.CurrentStateType} successfully");
-                }
-                else
-                {
-                    Console.WriteLine($"Failed to change to {screenType} page");
-                }
-            });
+                    if (screenChanged)
+                    {
+                        Debug.Log($"State changed : {GetStateMachine.PrevStateType} -> {GetStateMachine.CurrentStateType} successfully");
+                    }
+                    else
+                    {
+                        Debug.LogError($"Failed to change to {screenType} page");
+                    }
+                });
+            }
+            catch (Exception e)
+            {
+                Debug.LogException(e);
+            }
         }
     }
 }

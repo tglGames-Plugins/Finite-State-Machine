@@ -3,6 +3,8 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using JetBrains.Annotations;
+using TGL.FSM.Exceptions;
 using TGL.FSM.Threads;
 using UnityEngine;
 
@@ -18,6 +20,10 @@ namespace TGL.FSM.MonoBehaviourFSM
         [SerializeField] private TBaseState initializationState;
         [SerializeField] private List<TBaseState> allPossibleStates;
         private bool isInitialized;
+        
+        
+        private FSMResult _initTaskResult = null;
+        private AwaitableCompletionSource<FSMResult> _initAwaitableCompletionSource;
         #endregion MyVariables
         
         #region Interface Properties
@@ -26,75 +32,52 @@ namespace TGL.FSM.MonoBehaviourFSM
         public StateMachine<TStateEnumType> MyStateMachine => myStateMachine;
         IState<TStateEnumType> IStateObject<TStateEnumType>.InitializationState => initializationState;
         List<IState<TStateEnumType>> IStateObject<TStateEnumType>.AllPossibleStates => allPossibleStates.Cast<IState<TStateEnumType>>().ToList();
+        
+        FSMResult IStateObject<TStateEnumType>.InitTaskResult => _initTaskResult;
         #endregion
         
-        private Task initTask;
-
-        #region AwakeMethods
-
-        protected virtual void PreAwake() { }
         
-        private async void Awake()
+        private async void Start()
         {
-            PreAwake();
-            /*
-            initTask = Initialize(
-                initState: initializationState as IState<TStateEnumType>,
-                allStates: allPossibleStates.Cast<IState<TStateEnumType>>().ToList(),
-                initializedSuccessfully: (initializedSuccessfully) =>
-                {
-                    Debug.Log(initializedSuccessfully ? 
-                        $"State object ({gameObject.name}) initialized successfully" : 
-                        $"State object ({gameObject.name}) not initialized, error of some sort", gameObject);
-                });
-            */
-            initTask = Setup(
-            initState: initializationState,
-            allStates: allPossibleStates,
-            initializedSuccessfully: (initializedSuccessfully) =>
+            try
             {
-                Debug.Log(initializedSuccessfully ? 
-                    $"State object ({gameObject.name}) initialized successfully" : 
-                    $"State object ({gameObject.name}) not initialized, error of some sort", gameObject);
-            });
-            await initTask;
-            PostAwake();
-        }
-        
-        protected virtual void PostAwake() { }
+                _initTaskResult = await Setup(
+                    initState: initializationState,
+                    allStates: allPossibleStates,
+                    initializedSuccessfully: (initializedSuccessfully) =>
+                    {
+                        isInitialized = initializedSuccessfully;
+                        Debug.Log(
+                            initializedSuccessfully
+                                ? $"State object ({gameObject.name}) initialized successfully"
+                                : $"State object ({gameObject.name}) not initialized, error of some sort", gameObject);
+                    });
 
-        #endregion AwakeMethods
-        
-        private IEnumerator Start()
-        {
-            if (!isInitialized)
-            {
-                WaitForEndOfFrame waitForEndOfFrame = new WaitForEndOfFrame();
-                while (!isInitialized && 
-                       !initTask.IsCanceled && 
-                       !initTask.IsCompleted &&
-                       !initTask.IsFaulted)
+                if (_initTaskResult?.IsCompletedSuccessfully ?? false)
                 {
-                    yield return waitForEndOfFrame;
+                    Debug.Log($"{this.GetType().Name} is initialized successfully", gameObject);
+                }
+                else if (_initTaskResult?.IsCancelled ?? false)
+                {
+                    Debug.LogWarning($"{this.GetType().Name} has canceled initialization", gameObject);
+                }
+                else if (_initTaskResult?.HasException ?? false)
+                {
+                    Debug.LogError(
+                        $"{this.GetType().Name} encountered exception during initialization: " +
+                        _initTaskResult.Exception.Message, gameObject);
+                }
+                else
+                {
+                    Debug.LogWarning($"{this.GetType().Name} has some weird data during initialization: " +
+                                     $"IsCompleted:[{(_initTaskResult?.IsCompletedSuccessfully ?? false)}], " +
+                                     $"IsCanceled:[{(_initTaskResult?.IsCancelled ?? false)}], " +
+                                     $"HasException:[{(_initTaskResult?.HasException ?? false)}]", gameObject);
                 }
             }
-
-            if (initTask.IsCompleted && !initTask.IsCanceled && !initTask.IsFaulted)
+            catch (Exception ex)
             {
-                Debug.Log($"{this.GetType().Name} is initialized successfully", gameObject);
-            }
-            else if (initTask.IsFaulted)
-            {
-                Debug.LogError($"{this.GetType().Name} encountered fault during initialization", gameObject);
-            }
-            else if (initTask.IsCanceled)
-            {
-                Debug.LogWarning($"{this.GetType().Name} has canceled initialization", gameObject);
-            }
-            else
-            {
-                Debug.LogWarning($"{this.GetType().Name} has some weird data during initialization: " +
-                                 $"IsCompleted:[{initTask.IsCompleted}], IsCanceled:[{initTask.IsCanceled}], IsFaulted:[{initTask.IsFaulted}]", gameObject);
+                Debug.LogException(ex);
             }
         }
         
@@ -104,12 +87,24 @@ namespace TGL.FSM.MonoBehaviourFSM
         }
         
         #region StateMethods
-        
-        private async Task Setup(TBaseState initState, 
-            List<TBaseState> allStates,
-            Action<bool> initializedSuccessfully = null)
+
+        /// <summary>
+        /// Sets up the FSM Object, will return Awaitable FSMResult
+        /// Populates <see cref="_initTaskResult"/> for anyone who needs to confirm setup is complete.
+        /// </summary>
+        /// <param name="initState">The initial State the object will be in</param>
+        /// <param name="allStates">All states the object can be in</param>
+        /// <param name="initializedSuccessfully">func informing the caller if the request ended successfully</param>
+        /// <returns>Awaitable result of <see cref="FSMResult"/> type</returns>
+        private async Awaitable<FSMResult> Setup(TBaseState initState, List<TBaseState> allStates, Action<bool> initializedSuccessfully = null)
         {
+            _initAwaitableCompletionSource = new AwaitableCompletionSource<FSMResult>();
+            _initTaskResult = null;
+            
             isInitialized = false;
+            FSMResult result = null;
+            string errorMsg = null;
+            
             try
             {
                 initializationState = initState;
@@ -118,41 +113,59 @@ namespace TGL.FSM.MonoBehaviourFSM
                 
                 if (allPossibleStates is not { Count: not 0 })
                 {
-                    Debug.LogError($"The passed states list is null or empty. for type {typeof(TStateEnumType)}", gameObject);
+                    errorMsg = $"The passed states list is null or empty. for type {typeof(TStateEnumType)}";
+                    Debug.LogError(errorMsg, gameObject);
+                    result = new FSMResult(false, false, new FsmException(errorMsg));
+                }
+                else if (allPossibleStates.Any(x => x == null))
+                {
+                    errorMsg = $"There are null items in {nameof(allPossibleStates)}, cannot Initialize";
+                    Debug.LogError(errorMsg, gameObject);
+                    result = new FSMResult(false, false, new FsmException(errorMsg));
                 }
                 else
                 {
-                    if (allPossibleStates.Any(x => x == null))
+                    allPossibleStates.ForEach(x => x.Initialize(myStateMachine, this));
+                    
+                    errorMsg = $"Unable to Initialize stateMachine for type {typeof(TStateEnumType)}";
+                    await myStateMachine.Initialize(initializationState, (initSuccess) =>
                     {
-                        Debug.LogError($"There are null in {nameof(allPossibleStates)}, cannot Initialize", gameObject);
+                        isInitialized = initSuccess;
+                    });
+                    
+                    if (isInitialized)
+                    {
+                        Debug.Log($"successfully initialized stateMachine for type {typeof(TStateEnumType)}", gameObject);
+                        _initTaskResult = FSMResult.GetSuccess();
                     }
                     else
                     {
-                        allPossibleStates.ForEach(x => x.Initialize(myStateMachine, this));
-                        await myStateMachine.Initialize(initializationState, (initSuccess) =>
-                        {
-                            Debug.Log(initSuccess ? $"successfully initialized stateMachine for type {typeof(TStateEnumType)}" : $"Unable to Initialize stateMachine for type {typeof(TStateEnumType)}", gameObject);
-                            isInitialized = initSuccess;
-                        });
+                        _initTaskResult = new FSMResult(false, false, new FsmException(errorMsg));
                     }
                 }
             }
             catch (Exception ex)
             {
                 Debug.LogException(ex);
-                throw;
+                result = new FSMResult(false, false, new FsmException($"Unable to Initialize stateMachine for type {typeof(TStateEnumType)}", ex));
             }
             finally
             {
+                result ??= new FSMResult(false, false, new FsmException("Unknown error during setup."));
+
+                // Set completion sources and flags here
+                _initAwaitableCompletionSource.SetResult(result);
+                _initTaskResult = result;
                 initializedSuccessfully?.Invoke(isInitialized);
             }
+            
+            return result;
         }
+        
         #endregion StateMethods
         
         
         #region InterfaceOverrides
-
-        
         
         /// <summary>
         /// Do not call this method, The code in <see cref="GenericMonoBehaviourFSMObject"/> will auto call it in <see cref="Awake"/> method,<br/>
@@ -162,13 +175,22 @@ namespace TGL.FSM.MonoBehaviourFSM
         /// <param name="allStates">all states in this state machine</param>
         /// <param name="initializedSuccessfully">callback action</param>
         /// <returns></returns>
-        async Task IStateObject<TStateEnumType>.Initialize(IState<TStateEnumType> initState, List<IState<TStateEnumType>> allStates, Action<bool> initializedSuccessfully)
+        async Awaitable IStateObject<TStateEnumType>.Initialize(IState<TStateEnumType> initState, List<IState<TStateEnumType>> allStates, Action<bool> initializedSuccessfully)
         {
-            await Setup((TBaseState)initState, allStates.Cast<TBaseState>().ToList(), initializedSuccessfully);
+            if (_initTaskResult is null)
+            {
+                try
+                {
+                    await Setup((TBaseState)initState, allStates.Cast<TBaseState>().ToList(), initializedSuccessfully);
+                }
+                catch (Exception e)
+                {
+                    Debug.LogException(e);
+                }
+            }
         }
 
-        public virtual async Task ChangeState(TStateEnumType targetStateType, 
-            Action<bool> onStateChangeSuccess = null)
+        public virtual async Awaitable ChangeState(TStateEnumType targetStateType, Action<bool> onStateChangeSuccess = null)
         {
             if (myStateMachine.IsStateChanging)
             {
@@ -210,7 +232,6 @@ namespace TGL.FSM.MonoBehaviourFSM
             catch (Exception ex)
             {
                 Debug.LogException(ex);
-                throw;
             }
             finally
             {
@@ -222,12 +243,13 @@ namespace TGL.FSM.MonoBehaviourFSM
         {
             if (!isInitialized)
             {
-                Debug.LogError($"The state object is not initialized", gameObject);
+                Debug.LogWarning($"The state object is not initialized", gameObject);
                 return;
             }
             
             myStateMachine.LogicUpdate(deltaTime);
         }
+        
         #endregion InterfaceOverrides
     }
 }

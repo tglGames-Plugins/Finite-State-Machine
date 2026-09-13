@@ -14,5 +14,15 @@ namespace TGL.FSM.Sample
         {
             Debug.Log($"Showing StateTwo");
         }
+
+        public override StateEnum GetNextStateEnum()
+        {
+            return StateEnum.STATE_3;
+        }
+
+        public override StateEnum GetPrevStateEnum()
+        {
+            return StateEnum.STATE_1;
+        }
     }
 }

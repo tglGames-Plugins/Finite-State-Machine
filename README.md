@@ -2,8 +2,9 @@
 A simple Finite state machine. we can use it to define the states and change states
 
 ## Limitations
-- If you decide to override 'PreEnter()' or 'PostExit()' in 'GenericMonoBehaviorFSMState' derived class, the GameObject will not auto enable or disable.  
-- A simple FSM plugin for Unity. Does not support WebGl platform
+- If you decide to override 'PreEnter()' or 'PostExit()' in 'GenericMonoBehaviorFSMState' derived class, the GameObject will not auto enable or disable.
+- not tested in WebGl platform. Should support as I have used the new `Awaitable` system instead of `async Task` which was used earlier.
+- does not support none state as active state.
 
 ### How to Use
 To use this plugin, follow these steps:

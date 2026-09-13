@@ -1,5 +1,6 @@
 using System;
 using System.Threading.Tasks;
+using JetBrains.Annotations;
 using TGL.FSM.MonoBehaviourFSM;
 using UnityEngine;
 using UnityEngine.UI;
@@ -11,9 +12,10 @@ namespace TGL.FSM.Sample
         public Button showStateButton;
         public Button nextStateBtn;
         public Button prevStateBtn;
+        [CanBeNull] private StateBase _currentState => (MyStateMachine?.CurrentState as StateBase);
 
 
-        protected override void PreAwake()
+        public void Awake()
         {
             showStateButton.onClick.AddListener(ButtonClicked);
             prevStateBtn.onClick.AddListener(PrevState);
@@ -22,7 +24,7 @@ namespace TGL.FSM.Sample
 
         private void ButtonClicked()
         {
-            (MyStateMachine?.CurrentState as StateBase)?.PrintStateData();
+            _currentState?.PrintStateData();
         }
 
         void OnDestroy()
@@ -34,30 +36,28 @@ namespace TGL.FSM.Sample
 
         private async void PrevState()
         {
-            StateEnum targetState = StateEnum.NONE;
-            switch (MyStateMachine.CurrentStateType)
+            try
             {
-                case StateEnum.NONE:
-                    Debug.Log($"cannot go to prev or next state from {StateEnum.NONE} state");
-                    break;
-                case StateEnum.STATE_1:
-                    targetState = StateEnum.STATE_4;
-                    break;
-                case StateEnum.STATE_2:
-                    targetState = StateEnum.STATE_1;
-                    break;
-                case StateEnum.STATE_3:
-                    targetState = StateEnum.STATE_2;
-                    break;
-                case StateEnum.STATE_4:
-                    targetState = StateEnum.STATE_3;
-                    break;
-            }
+                StateEnum targetState = StateEnum.NONE;
+                switch (MyStateMachine.CurrentStateType)
+                {
+                    case StateEnum.NONE:
+                        Debug.Log($"cannot go to prev or next state from {StateEnum.NONE} state");
+                        break;
+                    default:
+                        targetState = _currentState?.GetPrevStateEnum() ?? StateEnum.NONE;
+                        break;
+                }
 
-            await ChangeStateTo(targetState);
+                await ChangeStateTo(targetState);
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogException(ex);
+            }
         }
 
-        private async Task ChangeStateTo(StateEnum targetState)
+        private async Awaitable ChangeStateTo(StateEnum targetState)
         {
             try
             {
@@ -81,27 +81,25 @@ namespace TGL.FSM.Sample
 
         private async void NextState()
         {
-            StateEnum targetState = StateEnum.NONE;
-            switch (MyStateMachine.CurrentStateType)
+            try
             {
-                case StateEnum.NONE:
-                    Debug.Log($"cannot go to prev or next state from {StateEnum.NONE} state");
-                    break;
-                case StateEnum.STATE_1:
-                    targetState = StateEnum.STATE_2;
-                    break;
-                case StateEnum.STATE_2:
-                    targetState = StateEnum.STATE_3;
-                    break;
-                case StateEnum.STATE_3:
-                    targetState = StateEnum.STATE_4;
-                    break;
-                case StateEnum.STATE_4:
-                    targetState = StateEnum.STATE_1;
-                    break;
-            }
+                StateEnum targetState = StateEnum.NONE;
+                switch (MyStateMachine.CurrentStateType)
+                {
+                    case StateEnum.NONE:
+                        Debug.Log($"cannot go to prev or next state from {StateEnum.NONE} state");
+                        break;
+                    default:
+                        targetState = _currentState?.GetNextStateEnum() ?? StateEnum.NONE;
+                        break;
+                }
 
-            await ChangeStateTo(targetState);
+                await ChangeStateTo(targetState);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogException(ex);
+            }
         }
     }
 }

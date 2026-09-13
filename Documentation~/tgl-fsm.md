@@ -6,6 +6,8 @@ A simple FSM library, it is made so we can use FSM without needing to re-write t
 NA
 
 ## Installation instructions  
+See [How to add this package](../HowToAddPackage.md) for detailed instructions.  
+OR  
 You can check steps to install at 'https://docs.unity3d.com/Manual/upm-ui-install.html' as they are the same
 
 ## Requirements  
@@ -27,7 +29,6 @@ NA
 Samples can be found in "Samples" folder. There is also a scene with the necessary information.  
   
 ## Tutorials  
-  
 ### How to Use  
 To use this plugin, follow these steps:  
 - create an enum which will be used to identify each state (.cs)  
@@ -39,4 +40,5 @@ To use this plugin, follow these steps:
 - Add the states to the desired objects  
     - define the enum in the states  
 - Add the state Object to the desired object  
-    - Attach all states and define and attach the initial state to the object  
+    - Attach all states and define and attach the initial state to the object
+
